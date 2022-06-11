@@ -3,6 +3,9 @@
 @import "../../node_modules/uikit/src/scss/uikit-theme.scss";
 
 $panel_height: 64px;
+$panel_height_tablet: 130px;
+$panel_height_mob: 180px;
+
 
 * {
     box-sizing: border-box;
@@ -24,10 +27,33 @@ iframe{
 	padding: 10px 17px;
 	height: $panel_height;
 	border-bottom: 1px solid #000;
+	background: #fff;
 
 	position: fixed;
 	top: 0;
 	left: 0;
+}
+
+@media (max-width: 991px){
+	.panel{
+		flex-wrap: wrap;
+    justify-content: flex-start;
+		height: $panel_height_tablet;
+	}
+	iframe{
+		top: $panel_height_tablet;
+		height: calc(100vh - #{$panel_height_tablet});
+	}
+}
+
+@media (max-width: 575px){
+	.panel{
+		height: $panel_height_mob;
+	}
+	iframe{
+		top: $panel_height_mob;
+		height: calc(100vh - #{$panel_height_mob});
+	}
 }
 
 .uk-notification * {
@@ -43,7 +69,7 @@ iframe{
 	left: 0;
 	width: 100%;
 	height: 100%;
-	background-color: rgba(0,0,0,.4);
+	background-color: rgba(0,0,0,.8);
 	visibility: hidden;
 	opacity: 0;
 	transition: all 0.8s ease;

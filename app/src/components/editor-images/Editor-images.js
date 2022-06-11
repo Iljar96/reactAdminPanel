@@ -10,6 +10,12 @@ export default class EditorImages {
 		this.isLoading = isLoading;
 		this.isLoaded = isLoaded;
 		this.showNotifications = showNotifications;
+		if (window.getComputedStyle(this.element).position === 'static') {
+			this.element.style.position = 'relative';
+
+		}
+		this.element.style.zIndex = '9';
+
 		// document.body.addEventListener('click', (e) => {
 		// 	console.log(e.target);
 		// 	if (e.target.getAttribute('editableimgid')) {

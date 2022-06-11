@@ -180,7 +180,7 @@ const Editor = (props) => {
 				position: absolute; 
 				top: 0;
 				left: 0;
-				z-index: 10;
+				z-index: 1000;
 			}
 			.editor-icon svg {
 				display: block;
