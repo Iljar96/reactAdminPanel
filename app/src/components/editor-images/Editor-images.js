@@ -15,13 +15,6 @@ export default class EditorImages {
 
 		}
 		this.element.style.zIndex = '9';
-
-		// document.body.addEventListener('click', (e) => {
-		// 	console.log(e.target);
-		// 	if (e.target.getAttribute('editableimgid')) {
-		// 		console.log(e.target);
-		// 	}
-		// });
 	}
 
 	onClick() {

@@ -14,6 +14,7 @@ import EditorMeta from "../editor-meta";
 import EditorImages from "../editor-images";
 import Login from "../login";
 import EditorLink from "../editor-link";
+import EditorList from "../editor-list";
 
 const Editor = (props) => {
 	let currentPage = localStorage.getItem('currentPage') ? localStorage.getItem('currentPage') : 'index.html';
@@ -89,6 +90,7 @@ const Editor = (props) => {
 			.then(DOMHelper.wrapTextNodes)
 			.then(DOMHelper.wrapImages)
 			.then(DOMHelper.wrapLinks)
+			.then(DOMHelper.wrapLists)
 			.then(dom => {
 				virtualDom.current = dom;
 				return dom;
@@ -110,6 +112,7 @@ const Editor = (props) => {
 		DOMHelper.unwrapTextNodes(newDom);
 		DOMHelper.unwrapImages(newDom);
 		DOMHelper.unwrapLinks(newDom);
+		DOMHelper.unwrapLists(newDom);
 		const html = DOMHelper.serializeDOMToString(newDom);
 
 		await axios
@@ -125,23 +128,29 @@ const Editor = (props) => {
 	}
 
 	const enableEditing = () => {
+		const getVirtualEl = (el, attr) => {
+			const id = el.getAttribute(attr);
+			return virtualDom.current.body.querySelector(`[${attr}="${id}"]`);
+		}
 		iframeRef.current.contentDocument.body.querySelectorAll('text-editor')
 			.forEach(el => {
-				const id = el.getAttribute('nodeid');
-				const virtualElement = virtualDom.current.body.querySelector(`[nodeid="${id}"]`);
+				const virtualElement = getVirtualEl(el, 'nodeid');
 				new EditorText(el, virtualElement);
 			});
 		iframeRef.current.contentDocument.body.querySelectorAll('[editableimgid]')
 			.forEach(el => {
-				const id = el.getAttribute('editableimgid');
-				const virtualElement = virtualDom.current.body.querySelector(`[editableimgid="${id}"]`);
+				const virtualElement = getVirtualEl(el, 'nodeieditableimgid');
 				new EditorImages(el, virtualElement, isLoading, isLoaded, showNotifications);
+			});
+		iframeRef.current.contentDocument.body.querySelectorAll('[editablelistid]')
+			.forEach(el => {
+				const virtualElement = getVirtualEl(el, 'editablelistid');
+				new EditorList(el, virtualElement);
 			});
 		if (editorForm) {
 			iframeRef.current.contentDocument.body.querySelectorAll('[editablelinkid]')
 				.forEach(el => {
-					const id = el.getAttribute('editablelinkid');
-					const virtualElement = virtualDom.current.body.querySelector(`[editablelinkid="${id}"]`);
+					const virtualElement = getVirtualEl(el, 'editablelinkid');
 					new EditorLink(el, virtualElement, editorForm);
 				});
 		}
@@ -167,9 +176,10 @@ const Editor = (props) => {
 				height: 1px;
 				position: relative;
 				opacity: 0;
-				visibility: 0;
+				visibility: hidden;
 			}
-			a:hover .editor-block {
+			a:hover .editor-block,
+			ul:hover > .editor-block {
 				opacity: 1;
 				visibility: visible;
 			}
@@ -181,9 +191,21 @@ const Editor = (props) => {
 				top: 0;
 				left: 0;
 				z-index: 1000;
+				cursor: pointer;
 			}
 			.editor-icon svg {
 				display: block;
+			}
+			.delete-block {
+				display: inline-block;
+				width: 1px;
+				position: relative;
+				opacity: 0;
+				visibility: hidden;
+			}
+			ul:hover .delete-block {
+				opacity: 1;
+				visibility: visible;
 			}
 		`;
 		iframeRef.current.contentDocument.head.appendChild(style);
