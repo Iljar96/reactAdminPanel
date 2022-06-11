@@ -132,6 +132,7 @@ const Editor = (props) => {
 			const id = el.getAttribute(attr);
 			return virtualDom.current.body.querySelector(`[${attr}="${id}"]`);
 		}
+
 		iframeRef.current.contentDocument.body.querySelectorAll('text-editor')
 			.forEach(el => {
 				const virtualElement = getVirtualEl(el, 'nodeid');
@@ -139,7 +140,7 @@ const Editor = (props) => {
 			});
 		iframeRef.current.contentDocument.body.querySelectorAll('[editableimgid]')
 			.forEach(el => {
-				const virtualElement = getVirtualEl(el, 'nodeieditableimgid');
+				const virtualElement = getVirtualEl(el, 'editableimgid');
 				new EditorImages(el, virtualElement, isLoading, isLoaded, showNotifications);
 			});
 		iframeRef.current.contentDocument.body.querySelectorAll('[editablelistid]')
