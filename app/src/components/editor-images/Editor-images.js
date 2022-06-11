@@ -10,12 +10,12 @@ export default class EditorImages {
 		this.isLoading = isLoading;
 		this.isLoaded = isLoaded;
 		this.showNotifications = showNotifications;
-		document.body.addEventListener('click', (e) => {
-			console.log(e.target);
-			if (e.target.getAttribute('editableimgid')) {
-				console.log(e.target);
-			}
-		});
+		// document.body.addEventListener('click', (e) => {
+		// 	console.log(e.target);
+		// 	if (e.target.getAttribute('editableimgid')) {
+		// 		console.log(e.target);
+		// 	}
+		// });
 	}
 
 	onClick() {
@@ -33,6 +33,10 @@ export default class EditorImages {
 					})
 					.then(({ data }) => {
 						this.virtualElement.src = this.element.src = `./img/${data.src}`;
+						if (this.element.getAttribute('data-src')) {
+							this.element.setAttribute('data-src', `./img/${data.src}`);
+							this.virtualElement.setAttribute('data-src', `./img/${data.src}`);
+						}
 					})
 					.catch(() => this.showNotifications('Ошибка сохранения', 'danger'))
 					.finally(() => {

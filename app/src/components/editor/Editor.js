@@ -1,6 +1,6 @@
 import "../../helpers/iframeLoader";
 import axios from 'axios';
-import React, { Component } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import UIkit from 'uikit';
 
 import EditorText from "../editor-text";
@@ -15,71 +15,53 @@ import EditorImages from "../editor-images";
 import Login from "../login";
 import EditorLink from "../editor-link";
 
-export default class Editor extends Component {
-	constructor() {
-		super();
-		this.currentPage = localStorage.getItem('currentPage') ? localStorage.getItem('currentPage') : 'index.html';
-		this.state = {
-			pageList: [],
-			backupsList: [],
-			newPageName: '',
-			loading: true,
-			auth: false,
-			loginError: false,
-			loginLengthError: false
-		}
+const Editor = (props) => {
+	let currentPage = localStorage.getItem('currentPage') ? localStorage.getItem('currentPage') : 'index.html';
+	const [pageList, setPageList] = useState([]);
+	const [backupsList, setBackupsList] = useState([]);
+	const [newPageName, setNewPageName] = useState('');
+	const [loading, setLoading] = useState(true);
+	const [auth, setAuth] = useState(false);
+	const [loginError, setLoginError] = useState(false);
+	const [loginLengthError, setLoginLengthError] = useState(false);
+	const [editorForm, setEditorForm] = useState(null);
+	let iframeRef = useRef(null);
+	let virtualDom = useRef(null);
 
-		this.virtualDom;
-		this.isLoading = this.isLoading.bind(this);
-		this.isLoaded = this.isLoaded.bind(this);
-		this.save = this.save.bind(this);
-		this.init = this.init.bind(this);
-		this.restoreBackup = this.restoreBackup.bind(this);
-		this.login = this.login.bind(this);
-		this.logout = this.logout.bind(this);
-	}
+	useEffect(() => {
+		checkAuth();
+	}, [])
 
-	componentDidMount() {
-		this.checkAuth();
-	}
+	useEffect(() => {
+		if (currentPage && editorForm)
+			init(null, currentPage);
+	}, [auth, editorForm])
 
-	componentDidUpdate(_, prevState) {
-		if (this.state.auth !== prevState.auth) {
-			this.init(null, this.currentPage);
-		}
-	}
-
-	checkAuth() {
+	const checkAuth = () => {
 		axios
 			.get('./api/checkAuth.php')
-			.then(({ data }) => {
-				this.setState({ auth: data.auth })
-			})
+			.then(({ data }) => setAuth(data.auth))
 	}
 
-	login(e, pass) {
+	const login = (e, pass) => {
 		e && e.preventDefault();
 
 		if (pass.length > 5) {
 			axios
 				.post('./api/login.php', { 'password': pass })
 				.then(({ data }) => {
-					this.setState({
-						auth: data.auth,
-						loginError: !data.auth,
-						loginLengthError: false
-					})
+					setAuth(data.auth);
+					setLoginError(!data.auth);
+					setLoginLengthError(false);
 				})
 
 		} else {
-			this.setState({
-				loginError: false,
-				loginLengthError: true
-			})
+			setLoginError(false);
+			setLoginLengthError(true);
 		}
 	}
 
-	logout() {
+	const logout = () => {
 		axios
 			.get('./api/logout.php')
 			.then(() => {
@@ -87,20 +69,19 @@ export default class Editor extends Component {
 			})
 	}
 
-	init(e, page) {
+	const init = (e, page) => {
 		e && e.preventDefault();
 
-		if (this.state.auth) {
-			this.isLoading();
-			this.iframe = document.querySelector('iframe');
-			this.open(page, this.isLoaded);
-			this.loadPageList();
-			this.loadBackupsList();
+		if (auth) {
+			isLoading();
+			open(page, isLoaded);
+			loadPageList();
+			loadBackupsList();
 		}
 	}
 
-	open(page, cb) {
-		this.currentPage = page;
+	const open = (page, cb) => {
+		currentPage = page;
 
 		axios
 			.get(`../${page}?rnd=${Math.random()}`)
@@ -109,23 +90,23 @@ export default class Editor extends Component {
 			.then(DOMHelper.wrapImages)
 			.then(DOMHelper.wrapLinks)
 			.then(dom => {
-				this.virtualDom = dom;
+				virtualDom.current = dom;
 				return dom;
 			})
 			.then(DOMHelper.serializeDOMToString)
 			.then(html => axios.post("./api/saveTempPage.php", { html }))
-			.then(() => this.iframe.load(`../dfsersre78945sda.html`))
-			.then(() => this.deletePage('dfsersre78945sda.html'))
-			.then(() => this.enableEditing())
-			.then(() => this.injectStyles())
+			.then(() => iframeRef.current.load(`../dfsersre78945sda.html`))
+			.then(() => deletePage('dfsersre78945sda.html'))
+			.then(() => enableEditing())
+			.then(() => injectStyles())
 			.then(cb);
 
-		this.loadBackupsList();
+		loadBackupsList();
 	}
 
-	async save() {
-		this.isLoading();
-		const newDom = this.virtualDom.cloneNode(this.virtualDom);
+	const save = async () => {
+		isLoading();
+		const newDom = virtualDom.current.cloneNode(virtualDom.current);
 		DOMHelper.unwrapTextNodes(newDom);
 		DOMHelper.unwrapImages(newDom);
 		DOMHelper.unwrapLinks(newDom);
@@ -134,38 +115,40 @@ export default class Editor extends Component {
 		await axios
 			.post('./api/savePage.php', {
 				html,
-				pageName: this.currentPage
+				pageName: currentPage
 			})
-			.then(() => this.showNotifications('Успешно сохранено', 'success'))
-			.catch(() => this.showNotifications('Ошибка сохранения', 'danger'))
-			.finally(this.isLoaded);
+			.then(() => showNotifications('Успешно сохранено', 'success'))
+			.catch(() => showNotifications('Ошибка сохранения', 'danger'))
+			.finally(isLoaded);
 
-		this.loadBackupsList();
+		loadBackupsList();
 	}
 
-	enableEditing() {
-		this.iframe.contentDocument.body.querySelectorAll('text-editor')
+	const enableEditing = () => {
+		iframeRef.current.contentDocument.body.querySelectorAll('text-editor')
 			.forEach(el => {
 				const id = el.getAttribute('nodeid');
-				const virtualElement = this.virtualDom.body.querySelector(`[nodeid="${id}"]`);
+				const virtualElement = virtualDom.current.body.querySelector(`[nodeid="${id}"]`);
 				new EditorText(el, virtualElement);
 			});
-		this.iframe.contentDocument.body.querySelectorAll('[editableimgid]')
+		iframeRef.current.contentDocument.body.querySelectorAll('[editableimgid]')
 			.forEach(el => {
 				const id = el.getAttribute('editableimgid');
-				const virtualElement = this.virtualDom.body.querySelector(`[editableimgid="${id}"]`);
-				new EditorImages(el, virtualElement, this.isLoading, this.isLoaded, this.showNotifications);
+				const virtualElement = virtualDom.current.body.querySelector(`[editableimgid="${id}"]`);
+				new EditorImages(el, virtualElement, isLoading, isLoaded, showNotifications);
 			});
-		this.iframe.contentDocument.body.querySelectorAll('[editablelinkid]')
-			.forEach(el => {
-				const id = el.getAttribute('editablelinkid');
-				const virtualElement = this.virtualDom.body.querySelector(`[editablelinkid="${id}"]`);
-				new EditorLink(el, virtualElement);
-			});
+		if (editorForm) {
+			iframeRef.current.contentDocument.body.querySelectorAll('[editablelinkid]')
+				.forEach(el => {
+					const id = el.getAttribute('editablelinkid');
+					const virtualElement = virtualDom.current.body.querySelector(`[editablelinkid="${id}"]`);
+					new EditorLink(el, virtualElement, editorForm);
+				});
+		}
 	}
 
-	injectStyles() {
-		const style = this.iframe.contentDocument.createElement('style');
+	const injectStyles = () => {
+		const style = iframeRef.current.contentDocument.createElement('style');
 		style.innerHTML = `
 			text-editor:hover {
 				outline: 3px solid orange;
@@ -203,129 +186,122 @@ export default class Editor extends Component {
 				display: block;
 			}
 		`;
-		this.iframe.contentDocument.head.appendChild(style);
+		iframeRef.current.contentDocument.head.appendChild(style);
 	}
 
-	showNotifications(message, status) {
+	const showNotifications = (message, status) => {
 		UIkit.notification({ message, status });
 	}
 
-	loadPageList() {
+	const loadPageList = () => {
 		axios
 			.get('./api/pageList.php')
-			.then(({ data }) => this.setState({ pageList: data }))
+			.then(({ data }) => setPageList(data));
 	}
 
-	loadBackupsList() {
+	const loadBackupsList = () => {
 		axios
 			.get(`./backups/backups.json?rnd=${Math.random()}`)
-			.then(({ data }) => this.setState({
-				backupsList: data.filter(backup => {
-					return backup.page === this.currentPage;
+			.then(({ data }) => setBackupsList(
+				data.filter(backup => {
+					return backup.page === currentPage;
 				})
-			}))
+			))
 			.catch(err => console.warn(err));
 	}
 
-	deletePage(page) {
+	const deletePage = (page) => {
 		axios
 			.post('./api/deleteTempPage.php', { 'name': page })
-			.then(() => this.loadPageList())
-			.catch(() => this.showNotifications('Страницы не существует', 'warning'));
+			.then(() => loadPageList())
+			.catch(() => showNotifications('Страницы не существует', 'warning'));
 	}
 
-	restoreBackup(e, backup) {
+	const restoreBackup = (e, backup) => {
 		e && e.preventDefault();
 
 		UIkit.modal.confirm('Вы действительно хотите восстановить страницу из этой резервной копии, Все несохраненные данные будут потеряны!', { labels: { ok: 'Восстановить', cancel: 'Отмена' } })
 			.then(() => {
-				this.isLoading();
+				isLoading();
 				return axios
-					.post('./api/restoreBackup.php', { page: this.currentPage, file: backup })
+					.post('./api/restoreBackup.php', { page: currentPage, file: backup })
 			})
-			.then(() => this.open(this.currentPage, this.isLoaded));
+			.then(() => open(currentPage, isLoaded));
 	}
 
-	isLoading() {
-		this.setState({
-			loading: true
-		})
-	}
+	const isLoading = () => setLoading(true);
 
-	isLoaded() {
-		this.setState({
-			loading: false
-		})
-	}
+	const isLoaded = () => setLoading(false);
 
-	render() {
-		const { loading, pageList, backupsList, auth, loginError, loginLengthError } = this.state;
-		const modal = true;
-		let spinner;
+	const setInputRef = ref => {
+		setEditorForm(ref);
+	};
 
-		loading ? spinner = <Spinner active /> : <Spinner />;
+	const modal = true;
+	const spinner = loading ? <Spinner active /> : <Spinner />;
 
-		if (!auth) return (
-			<Login
-				login={this.login}
-				logErr={loginError}
-				lengthErr={loginLengthError} />
-		);
+	if (!auth) return (
+		<Login
+			login={login}
+			logErr={loginError}
+			lengthErr={loginLengthError} />
+	);
 
-		return (
-			<>
-				<iframe src="" frameBorder="0"></iframe>
-				<input id="img-upload" type="file" accept="image/*" style={{ display: 'none' }} />
+	return (
+		<>
+			<iframe ref={iframeRef} src="" frameBorder="0"></iframe>
+			<input id="img-upload" type="file" accept="image/*" style={{ display: 'none' }} />
 
-				{spinner}
+			{spinner}
 
-				<Panel />
+			<Panel />
 
-				<ConfirmModal
-					target='modal-save'
+			<ConfirmModal
+				target='modal-save'
+				modal={modal}
+				method={save}
+				text={{
+					title: 'Сохранение',
+					descr: 'Вы действительно хотите сохранить изменения?',
+					btn: 'Сохранить'
+				}} />
+			<ConfirmModal
+				target='modal-logout'
+				modal={modal}
+				method={logout}
+				text={{
+					title: 'Выход',
+					descr: 'Вы действительно хотите выйти?',
+					btn: 'Выйти'
+				}} />
+			<ChooseModal
+				target='modal-open'
+				modal={modal}
+				data={pageList}
+				redirect={init}
+				currentPage={currentPage} />
+			<ChooseModal
+				target='modal-backup'
+				modal={modal}
+				data={backupsList}
+				redirect={restoreBackup} />
+			<EditorModal
+				target='modal-editor'
+				modal={modal}
+				method={setInputRef}
+				text={{
+					title: 'Редактировать ссылку',
+					placeholder: 'Введите ссылку',
+					btn: 'Заменить ссылку'
+				}} />
+			{
+				virtualDom.current ? <EditorMeta
+					target='modal-meta'
 					modal={modal}
-					method={this.save}
-					text={{
-						title: 'Сохранение',
-						descr: 'Вы действительно хотите сохранить изменения?',
-						btn: 'Сохранить'
-					}} />
-				<ConfirmModal
-					target='modal-logout'
-					modal={modal}
-					method={this.logout}
-					text={{
-						title: 'Выход',
-						descr: 'Вы действительно хотите выйти?',
-						btn: 'Выйти'
-					}} />
-				<ChooseModal
-					target='modal-open'
-					modal={modal}
-					data={pageList}
-					redirect={this.init}
-					currentPage={this.currentPage} />
-				<ChooseModal
-					target='modal-backup'
-					modal={modal}
-					data={backupsList}
-					redirect={this.restoreBackup} />
-				<EditorModal
-					target='modal-editor'
-					modal={modal}
-					method={() => { }}
-					text={{
-						title: 'Редактировать ссылку',
-						placeholder: 'Введите ссылку',
-						btn: 'Заменить ссылку'
-					}} />
-				{
-					this.virtualDom ? <EditorMeta
-						target='modal-meta'
-						modal={modal}
-						virtualDom={this.virtualDom} /> : null
-				}
-			</>
-		)
-	}
+					virtualDom={virtualDom.current} /> : null
+			}
+		</>
+	)
 }
+
+export default Editor;

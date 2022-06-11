@@ -1,9 +1,10 @@
 import UIkit from 'uikit';
 
 export default class EditorLink {
-	constructor(element, virtualElement) {
+	constructor(element, virtualElement, editorForm) {
 		this.element = element;
 		this.virtualElement = virtualElement;
+		this.form = editorForm;
 		this.editerIcon = this.element.querySelector('.editor-icon');
 		this.link = this.editerIcon.closest('a');
 		this.virtualLink = this.virtualElement.querySelector('.editor-icon').closest('a');
@@ -13,12 +14,12 @@ export default class EditorLink {
 	onClick(e) {
 		if (e.target.closest('.editor-icon')) {
 			e.preventDefault();
-
 			UIkit.modal(document.querySelector('#modal-editor')).show();
-			document.querySelector('#modal-editor input').value = this.link.getAttribute('href');
-			document.querySelector('#modal-editor .uk-button-primary').addEventListener('click', e => {
-				this.link.setAttribute('href', e.target.closest('form').querySelector('input').value);
-				this.virtualLink.setAttribute('href', e.target.closest('form').querySelector('input').value);
+			this.form.linkEditor.value = this.link.getAttribute('href');
+			this.form.submitButton.addEventListener('click', e => {
+				e.preventDefault();
+				this.link.setAttribute('href', this.form.linkEditor.value);
+				this.virtualLink.setAttribute('href', this.form.linkEditor.value);
 			})
 		}
 	}

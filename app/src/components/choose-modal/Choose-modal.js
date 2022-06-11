@@ -1,5 +1,4 @@
 import React from 'react';
-import UIkit from 'uikit';
 
 const ChooseModal = ({ target, modal, data = [], redirect, currentPage }) => {
 	const list = data.map(item => {

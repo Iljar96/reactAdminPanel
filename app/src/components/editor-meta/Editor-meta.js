@@ -1,154 +1,125 @@
-import React, { Component } from 'react';
+import React, { Component, useEffect, useRef, useState } from 'react';
 
-export default class EditorMeta extends Component {
-	constructor(props) {
-		super(props);
-		this.state = {
-			meta: {
-				title: '',
-				keywords: '',
-				description: ''
-			}
-		}
-	}
+const EditorMeta = ({
+	virtualDom,
+	target,
+	modal
+}) => {
+	const [meta, setMeta] = useState({
+		title: '',
+		keywords: '',
+		description: ''
+	})
 
-	componentDidMount() {
-		this.getMeta(this.props.virtualDom);
-	}
+	const titleRef = useRef(null);
+	const keywordsRef = useRef(null);
+	const descriptionRef = useRef(null);
 
-	componentDidUpdate(prevProps) {
-		if (this.props.virtualDom !== prevProps.virtualDom) {
-			this.getMeta(this.props.virtualDom);
-		}
-	}
+	useEffect(() => getMeta(virtualDom), [virtualDom]);
 
-	getMeta(virtualDom) {
-		this.title = virtualDom.head.querySelector('title') || virtualDom.head.appendChild(virtualDom.createElement('title'));
+	const getMeta = (virtualDom) => {
+		titleRef.current = virtualDom.head.querySelector('title') || virtualDom.head.appendChild(virtualDom.createElement('title'));
 
-		this.keywords = virtualDom.head.querySelector('meta[name="keywords"]');
-		if (!this.keywords) {
-			this.keywords = virtualDom.head.appendChild(virtualDom.createElement('meta'));
-			this.keywords.setAttribute('name', 'keywords');
-			this.keywords.setAttribute('content', '');
+		keywordsRef.current = virtualDom.head.querySelector('meta[name="keywords"]');
+		if (!keywordsRef.current) {
+			keywordsRef.current = virtualDom.head.appendChild(virtualDom.createElement('meta'));
+			keywordsRef.current.setAttribute('name', 'keywords');
+			keywordsRef.current.setAttribute('content', '');
 		}
 
-		this.description = virtualDom.head.querySelector('meta[name="description"]');
-		if (!this.description) {
-			this.description = virtualDom.head.appendChild(virtualDom.createElement('meta'));
-			this.description.setAttribute('name', 'description');
-			this.description.setAttribute('content', '');
+		descriptionRef.current = virtualDom.head.querySelector('meta[name="description"]');
+		if (!descriptionRef.current) {
+			descriptionRef.current = virtualDom.head.appendChild(virtualDom.createElement('meta'));
+			descriptionRef.current.setAttribute('name', 'description');
+			descriptionRef.current.setAttribute('content', '');
 		}
 
-		this.setState({
-			meta: {
-				title: this.title.innerHTML,
-				keywords: this.keywords.getAttribute('content'),
-				description: this.description.getAttribute('content')
-			}
-		})
+		setMeta({
+			title: titleRef.current.innerHTML,
+			keywords: keywordsRef.current.getAttribute('content'),
+			description: descriptionRef.current.getAttribute('content')
+		});
 	}
 
-	applyMeta() {
-		console.log(this);
-		this.title.innerHTML = this.state.meta.title;
-		this.keywords.setAttribute('content', this.state.meta.keywords);
-		this.description.setAttribute('content', this.state.meta.description);
+	const applyMeta = () => {
+		titleRef.current.innerHTML = meta.title;
+		keywordsRef.current.setAttribute('content', meta.keywords);
+		descriptionRef.current.setAttribute('content', meta.description);
 	}
 
-	onValueChange(e) {
+	const onValueChange = (e) => {
 		if (e.target.getAttribute('data-title')) {
 			e.persist(); //?
-			this.setState(({ meta }) => {
-				const newMeta = {
-					...meta,
-					title: e.target.value
-				};
-
-				return {
-					meta: newMeta
-				}
-			})
+			setMeta({
+				...meta,
+				title: e.target.value
+			});
 		} else if (e.target.getAttribute('data-key')) {
 			e.persist(); //?
-			this.setState(({ meta }) => {
-				const newMeta = {
-					...meta,
-					keywords: e.target.value
-				};
-
-				return {
-					meta: newMeta
-				}
-			})
+			setMeta({
+				...meta,
+				keywords: e.target.value
+			});
 		} else {
 			e.persist(); //?
-			this.setState(({ meta }) => {
-				const newMeta = {
-					...meta,
-					description: e.target.value
-				};
-
-				return {
-					meta: newMeta
-				}
-			})
+			setMeta({
+				...meta,
+				description: e.target.value
+			});
 		}
-
-
 	}
 
-	render() {
-		const { target, modal } = this.props;
-		const { title, keywords, description } = this.state.meta;
+	const { title, keywords, description } = meta;
 
-		return (
-			<div id={target} uk-modal={modal.toString()}>
-				<div className="uk-modal-dialog uk-modal-body">
-					<h2 className="uk-modal-title">Редактирование Meta-тэгов</h2>
+	return (
+		<div id={target} uk-modal={modal.toString()}>
+			<div className="uk-modal-dialog uk-modal-body">
+				<h2 className="uk-modal-title">Редактирование Meta-тэгов</h2>
 
-					<form>
-						<div className="uk-margin">
-							<input
-								data-title
-								className="uk-input"
-								value={title}
-								type="text"
-								placeholder="Title"
-								onChange={(e) => this.onValueChange(e)} />
-						</div>
+				<form>
+					<div className="uk-margin">
+						<input
+							data-title
+							className="uk-input"
+							value={title}
+							type="text"
+							placeholder="Title"
+							onChange={(e) => onValueChange(e)} />
+					</div>
 
-						<div className="uk-margin">
-							<textarea
-								data-key
-								className="uk-textarea"
-								value={keywords}
-								rows="5"
-								placeholder="Keywords"
-								onChange={(e) => this.onValueChange(e)}></textarea>
-						</div>
+					<div className="uk-margin">
+						<textarea
+							data-key
+							className="uk-textarea"
+							value={keywords}
+							rows="5"
+							placeholder="Keywords"
+							onChange={(e) => onValueChange(e)}></textarea>
+					</div>
 
-						<div className="uk-margin">
-							<textarea
-								data-descr
-								className="uk-textarea"
-								value={description}
-								rows="5"
-								placeholder="Description"
-								onChange={(e) => this.onValueChange(e)}></textarea>
-						</div>
-					</form>
+					<div className="uk-margin">
+						<textarea
+							data-descr
+							className="uk-textarea"
+							value={description}
+							rows="5"
+							placeholder="Description"
+							onChange={(e) => onValueChange(e)}></textarea>
+					</div>
+				</form>
 
-					<p className="uk-text-right">
-						<button
-							className="uk-button uk-button-default uk-modal-close uk-margin-small-right"
-							type="button">Отменить</button>
-						<button
-							className="uk-button uk-button-primary uk-modal-close"
-							onClick={() => this.applyMeta()}
-							type="button">Применить</button>
-					</p>
-				</div>
+				<p className="uk-text-right">
+					<button
+						className="uk-button uk-button-default uk-modal-close uk-margin-small-right"
+						type="button">Отменить</button>
+					<button
+						className="uk-button uk-button-primary uk-modal-close"
+						onClick={() => applyMeta()}
+						type="button">Применить</button>
+				</p>
 			</div>
-		)
-	}
+		</div>
+	)
 }
+
+export default EditorMeta;
